@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeSafe KPI Dashboard — กฟน.1 (ระดับเขต)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--cl:205px;--cv:82px;--navy:#1a237e;--sp:#7b1fa2;--xs:#00796b}
+body{font-family:'Sarabun',sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:15px}
+#root{min-height:100vh}
+.wrap{max-width:1240px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:18px;margin-bottom:16px}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:var(--navy);color:#fff}.btn.pri:hover:not(:disabled){background:#283593}
+.btn.ok{background:#2e7d32;color:#fff}.btn.ok:hover:not(:disabled){background:#1b5e20}
+.btn.red{background:#c62828;color:#fff}
+.btn.out{background:#fff;border:1.5px solid #c5cae9;color:#1a237e}.btn.out:hover{background:#f5f6ff}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:7px}
+.inp{padding:6px 8px;border:2px solid #c5cae9;border-radius:8px;font-size:15px;font-family:inherit;font-weight:700;text-align:center;width:84px;background:#fff}
+.inp:focus{outline:none;border-color:var(--navy);background:#eef0ff}
+.inp.miss{border-color:#ffa726;background:#fff8e1}
+.inp.txt{text-align:left;font-weight:600;width:100%}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:10px;border:none;background:#e8eaf6;color:#1a237e;font-weight:700;font-family:inherit;font-size:14px;cursor:pointer}
+.tab.on{background:var(--navy);color:#fff}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;color:#fff;vertical-align:middle}
+.ucode{color:#8a8fa8;font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{background:#37474f;color:#fff;padding:7px 8px;font-weight:700;white-space:nowrap}
+.tbl td{padding:6px 8px;border-bottom:1px solid #eceff1;text-align:center}
+.tbl td.l{text-align:left;font-weight:600}
+.tbl tr:hover td{background:#fafbff}
+.uz{border:3px dashed #b0b8e0;border-radius:16px;padding:44px 24px;text-align:center;background:#fff;cursor:pointer;transition:all .2s}
+.uz:hover,.uz.dg{border-color:var(--navy);background:#eef0ff}
+.xs-wrap{overflow-x:auto;padding-bottom:6px}
+.xs-lbl{position:absolute;left:50%;top:6px;transform-origin:0 0;transform:rotate(-90deg) translate(-100%,-50%);font-size:11.5px;font-weight:600;white-space:nowrap;color:#37474f;line-height:1.2}
+.famnav{display:flex;flex-direction:column;gap:6px}
+.fam{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-radius:10px;border:2px solid transparent;background:#f5f6fa;cursor:pointer;font-family:inherit;text-align:left;width:100%}
+.fam:hover{background:#eef0ff}
+.fam.on{border-color:var(--navy);background:#e8eaf6}
+.ucard{border:2px solid #e0e3f0;border-radius:14px;margin-bottom:14px;overflow:hidden;background:#fff}
+.uhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;color:#fff;flex-wrap:wrap}
+.ubody{padding:12px 14px}
+.step{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px dashed #e3e6f0}
+.num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:#eceff1;color:#37474f}
+.hint{font-size:12.5px;color:#6b7280}
+.stepbar{display:flex;gap:8px;flex-wrap:wrap}
+.sb{flex:1;min-width:150px;padding:10px 12px;border-radius:12px;background:#eceff1;color:#78909c;font-weight:700;font-size:14px;border:none;font-family:inherit;text-align:left;cursor:pointer}
+.sb.on{background:var(--navy);color:#fff}.sb.done{background:#e8f5e9;color:#2e7d32}
+.sticky{position:sticky;top:0;z-index:20}
+.edgrid>*{min-width:0}
+.thr-legend{display:none;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+@media(max-width:900px){.navcard{position:static!important}.edgrid{grid-template-columns:1fr!important}.famnav{flex-direction:row;overflow-x:auto;padding-bottom:4px}.fam{min-width:170px}}
+@media(max-width:700px){:root{--cl:112px;--cv:64px}.ucode{display:none}.wrap{padding:10px}.card{padding:13px}.hide-m{display:none}
+  .seg span{font-size:10px}.seg-sm span{display:none}.thr-label{display:none}.thr-legend{display:flex}.chart-pad{padding-top:6px!important}}
+</style>
+</head>
+<body>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#888">กำลังโหลด...</div></div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBT6BRJEq0LMr64741vlXMfX68n7tc73xo",
+  authDomain: "wesafe-n1.firebaseapp.com",
+  databaseURL: "https://wesafe-n1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wesafe-n1",
+  storageBucket: "wesafe-n1.firebasestorage.app",
+  messagingSenderId: "435437540200",
+  appId: "1:435437540200:web:f1dc2e0fd7d1c916debcdd"
+};
+const DB_ROOT = "wesafe-kpi";
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const isPublicView = new URLSearchParams(window.location.search).get("view") === "1";
+</script>
+<script type="text/babel">
+const {useState,useMemo,useEffect,useRef,useCallback}=React;
+
+/* ══ หน่วยงานทั้งเขต (ลำดับตามรายงานส่วนกลาง) ══ */
+const UNITS=[{"id":"A01101","code":"A01101","label":"กฟจ.เชียงใหม่","grp":"M","fam":"A01101"},{"id":"A02101","code":"A02101","label":"กฟจ.ลำพูน","grp":"M","fam":"A02101"},{"id":"A03101","code":"A03101","label":"กฟจ.ลำปาง","grp":"M","fam":"A03101"},{"id":"A04101","code":"A04101","label":"กฟจ.เชียงราย","grp":"M","fam":"A04101"},{"id":"A05101","code":"A05101","label":"กฟจ.แม่ฮ่องสอน","grp":"M","fam":"A05101"},{"id":"A06101","code":"A06101","label":"กฟจ.พะเยา","grp":"M","fam":"A06101"},{"id":"A07101","code":"A07101","label":"กฟส.ฝาง","grp":"M","fam":"A07101"},{"id":"A08101","code":"A08101","label":"กฟส.แม่สาย","grp":"M","fam":"A08101"},{"id":"A09101","code":"A09101","label":"กฟส.สันป่าตอง","grp":"M","fam":"A09101"},{"id":"A10101","code":"A10101","label":"กฟส.เทิง","grp":"M","fam":"A10101"},{"id":"A11101","code":"A11101","label":"กฟส.สันทราย","grp":"M","fam":"A11101"},{"id":"A12101","code":"A12101","label":"กฟส.แม่ริม","grp":"M","fam":"A12101"},{"id":"A13101","code":"A13101","label":"กฟส.เกาะคา","grp":"M","fam":"A13101"},{"id":"A14101","code":"A14101","label":"กฟส.จอมทอง","grp":"M","fam":"A14101"},{"id":"A15101","code":"A15101","label":"กฟส.เมืองเชียงใหม่2","grp":"M","fam":"A15101"},{"id":"A16101","code":"A16101","label":"กฟส.หางดง","grp":"M","fam":"A16101"},{"id":"A17101","code":"A17101","label":"กฟส.พาน","grp":"M","fam":"A17101"},{"id":"A18101","code":"A18101","label":"กฟส.สันกำแพง","grp":"M","fam":"A18101"},{"id":"A01601","code":"A01601","label":"กฟส.สารภี","grp":"S","fam":"A01101"},{"id":"A02301","code":"A02301","label":"กฟส.ป่าซาง","grp":"S","fam":"A02101"},{"id":"A02501","code":"A02501","label":"กฟส.บ้านโฮ่ง","grp":"S","fam":"A02101"},{"id":"A02601","code":"A02601","label":"กฟส.ลี้","grp":"S","fam":"A02101"},{"id":"A02701","code":"A02701","label":"กฟส.บ้านธิ","grp":"S","fam":"A02101"},{"id":"A03501","code":"A03501","label":"กฟส.แจ้ห่ม","grp":"S","fam":"A03101"},{"id":"A03701","code":"A03701","label":"กฟส.งาว","grp":"S","fam":"A03101"},{"id":"A04201","code":"A04201","label":"กฟส.เวียงชัย","grp":"S","fam":"A04101"},{"id":"A04701","code":"A04701","label":"กฟส.นางแล","grp":"S","fam":"A04101"},{"id":"A05201","code":"A05201","label":"กฟส.แม่สะเรียง","grp":"S","fam":"A05101"},{"id":"A05301","code":"A05301","label":"กฟส.ปาย","grp":"S","fam":"A05101"},{"id":"A06201","code":"A06201","label":"กฟส.เชียงคำ","grp":"S","fam":"A06101"},{"id":"A06301","code":"A06301","label":"กฟส.จุน","grp":"S","fam":"A06101"},{"id":"A06401","code":"A06401","label":"กฟส.ดอกคำใต้","grp":"S","fam":"A06101"},{"id":"A07201","code":"A07201","label":"กฟส.แม่อาย","grp":"S","fam":"A07101"},{"id":"A08201","code":"A08201","label":"กฟส.แม่จัน","grp":"S","fam":"A08101"},{"id":"A08301","code":"A08301","label":"กฟส.เชียงแสน","grp":"S","fam":"A08101"},{"id":"A08401","code":"A08401","label":"กฟส.แม่ฟ้าหลวง","grp":"S","fam":"A08101"},{"id":"A10201","code":"A10201","label":"กฟส.เชียงของ","grp":"S","fam":"A10101"},{"id":"A11201","code":"A11201","label":"กฟส.พร้าว","grp":"S","fam":"A11101"},{"id":"A12201","code":"A12201","label":"กฟส.เชียงดาว","grp":"S","fam":"A12101"},{"id":"A12301","code":"A12301","label":"กฟส.แม่แตง","grp":"S","fam":"A12101"},{"id":"A13201","code":"A13201","label":"กฟส.เถิน","grp":"S","fam":"A13101"},{"id":"A13301","code":"A13301","label":"กฟส.แม่ทะ","grp":"S","fam":"A13101"},{"id":"A13401","code":"A13401","label":"กฟส.ห้างฉัตร","grp":"S","fam":"A13101"},{"id":"A14201","code":"A14201","label":"กฟส.ฮอด","grp":"S","fam":"A14101"},{"id":"A15201","code":"A15201","label":"กฟส.ดอยสะเก็ด","grp":"S","fam":"A15101"},{"id":"A17201","code":"A17201","label":"กฟส.เวียงป่าเป้า","grp":"S","fam":"A17101"},{"id":"A17301","code":"A17301","label":"กฟส.แม่ลาว","grp":"S","fam":"A17101"},{"id":"A17401","code":"A17401","label":"กฟส.แม่สรวย","grp":"S","fam":"A17101"},{"id":"X-แม่ออน","code":"","label":"กฟย.แม่ออน","grp":"X","fam":"A18101"},{"id":"X-แม่ทา","code":"","label":"กฟย.แม่ทา","grp":"X","fam":"A02101"},{"id":"X-นครเจดีย์","code":"","label":"กฟย.นครเจดีย์","grp":"X","fam":"A02101"},{"id":"X-เวียงหนองล่อง","code":"","label":"กฟย.เวียงหนองล่อง","grp":"X","fam":"A02101"},{"id":"X-ทุ่งหัวช้าง","code":"","label":"กฟย.ทุ่งหัวช้าง","grp":"X","fam":"A02101"},{"id":"X-แม่ตืน","code":"","label":"กฟย.แม่ตืน","grp":"X","fam":"A02101"},{"id":"X-พบชส","code":"","label":"กฟย.พบชส.","grp":"X","fam":"A03101"},{"id":"X-แม่เมาะ","code":"","label":"กฟย.แม่เมาะ","grp":"X","fam":"A03101"},{"id":"X-วังเหนือ","code":"","label":"กฟย.วังเหนือ","grp":"X","fam":"A03101"},{"id":"X-เมืองปาน","code":"","label":"กฟย.เมืองปาน","grp":"X","fam":"A03101"},{"id":"X-ห้วยสัก","code":"","label":"กฟย.ห้วยสัก","grp":"X","fam":"A04101"},{"id":"X-เวียงเชียงรุ้ง","code":"","label":"กฟย.เวียงเชียงรุ้ง","grp":"X","fam":"A04101"},{"id":"X-ขุนยวม","code":"","label":"กฟย.ขุนยวม","grp":"X","fam":"A05101"},{"id":"X-แม่ลาน้อย","code":"","label":"กฟย.แม่ลาน้อย","grp":"X","fam":"A05101"},{"id":"X-สบเมย","code":"","label":"กฟย.สบเมย","grp":"X","fam":"A05101"},{"id":"X-ปางมะผ้า","code":"","label":"กฟย.ปางมะผ้า","grp":"X","fam":"A05101"},{"id":"X-กัลยาณิวัฒนา","code":"","label":"กฟย.กัลยาณิวัฒนา","grp":"X","fam":"A16101"},{"id":"X-แม่ใจ","code":"","label":"กฟย.แม่ใจ","grp":"X","fam":"A06101"},{"id":"X-ภูกามยาว","code":"","label":"กฟย.ภูกามยาว","grp":"X","fam":"A06101"},{"id":"X-แม่กา","code":"","label":"กฟย.แม่กา","grp":"X","fam":"A06101"},{"id":"X-ภูซาง","code":"","label":"กฟย.ภูซาง","grp":"X","fam":"A06101"},{"id":"X-ปง","code":"","label":"กฟย.ปง","grp":"X","fam":"A06101"},{"id":"X-เชียงม่วน","code":"","label":"กฟย.เชียงม่วน","grp":"X","fam":"A06101"},{"id":"X-ไชยปราการ","code":"","label":"กฟย.ไชยปราการ","grp":"X","fam":"A07101"},{"id":"X-ดอยหลวง","code":"","label":"กฟย.ดอยหลวง","grp":"X","fam":"A08101"},{"id":"X-เทอดไทย","code":"","label":"กฟย.เทอดไทย","grp":"X","fam":"A08101"},{"id":"X-แม่สลองนอก","code":"","label":"กฟย.แม่สลองนอก","grp":"X","fam":"A08101"},{"id":"X-ดอยตุง","code":"","label":"กฟย.ดอยตุง","grp":"X","fam":"A08101"},{"id":"X-แม่วาง","code":"","label":"กฟย.แม่วาง","grp":"X","fam":"A09101"},{"id":"X-ขุนตาล","code":"","label":"กฟย.ขุนตาล","grp":"X","fam":"A10101"},{"id":"X-พญาเม็งราย","code":"","label":"กฟย.พญาเม็งราย","grp":"X","fam":"A10101"},{"id":"X-เวียงแก่น","code":"","label":"กฟย.เวียงแก่น","grp":"X","fam":"A10101"},{"id":"X-สะเมิง","code":"","label":"กฟย.สะเมิง","grp":"X","fam":"A16101"},{"id":"X-เวียงแหง","code":"","label":"กฟย.เวียงแหง","grp":"X","fam":"A12101"},{"id":"X-ป่าแป๋","code":"","label":"กฟย.ป่าแป๋","grp":"X","fam":"A12101"},{"id":"X-เสริมงาม","code":"","label":"กฟย.เสริมงาม","grp":"X","fam":"A13101"},{"id":"X-สบปราบ","code":"","label":"กฟย.สบปราบ","grp":"X","fam":"A13101"},{"id":"X-แม่พริก","code":"","label":"กฟย.แม่พริก","grp":"X","fam":"A13101"},{"id":"X-ดอยเต่า","code":"","label":"กฟย.ดอยเต่า","grp":"X","fam":"A14101"},{"id":"X-แม่แจ่ม","code":"","label":"กฟย.แม่แจ่ม","grp":"X","fam":"A14101"},{"id":"X-บ่อหลวง","code":"","label":"กฟย.บ่อหลวง","grp":"X","fam":"A14101"},{"id":"X-ดอยหล่อ","code":"","label":"กฟย.ดอยหล่อ","grp":"X","fam":"A14101"},{"id":"X-อมก๋อย","code":"","label":"กฟย.อมก๋อย","grp":"X","fam":"A14101"},{"id":"X-ป่าแดด","code":"","label":"กฟย.ป่าแดด","grp":"X","fam":"A17101"}];
+const NM={"เชียงใหม่":"A01101","กฟจ.เชียงใหม่":"A01101","สารภี":"A01601","กฟส.สารภี":"A01601","กฟย.สารภี":"A01601","กฟจ.เชียงใหม่ 2":"A15101","กฟจ.เชียงใหม่2":"A15101","กฟส.เมืองเชียงใหม่2":"A15101","กฟส.เมืองเชียงใหม่ 2":"A15101","ดอยสะเก็ด":"A15201","กฟส.ดอยสะเก็ด":"A15201","กฟอ.ดอยสะเก็ด":"A15201","กฟย.ดอยสะเก็ด":"A15201","เชียงราย":"A04101","กฟจ.เชียงราย":"A04101","นางแล":"A04701","กฟส.นางแล":"A04701","กฟย.นางแล":"A04701","เวียงชัย":"A04201","กฟส.เวียงชัย":"A04201","กฟย.เวียงชัย":"A04201","ห้วยสัก":"X-ห้วยสัก","กฟย.ห้วยสัก":"X-ห้วยสัก","กฟส.ห้วยสัก":"X-ห้วยสัก","เวียงเชียงรุ้ง":"X-เวียงเชียงรุ้ง","กฟย.เวียงเชียงรุ้ง":"X-เวียงเชียงรุ้ง","กฟส.เวียงเชียงรุ้ง":"X-เวียงเชียงรุ้ง","จอมทอง":"A14101","กฟอ.จอมทอง":"A14101","กฟส.จอมทอง":"A14101","ฮอด":"A14201","กฟส.ฮอด":"A14201","กฟย.ฮอด":"A14201","ดอยหล่อ":"X-ดอยหล่อ","กฟย.ดอยหล่อ":"X-ดอยหล่อ","กฟส.ดอยหล่อ":"X-ดอยหล่อ","แม่แจ่ม":"X-แม่แจ่ม","กฟย.แม่แจ่ม":"X-แม่แจ่ม","กฟส.แม่แจ่ม":"X-แม่แจ่ม","ดอยเต่า":"X-ดอยเต่า","กฟย.ดอยเต่า":"X-ดอยเต่า","กฟส.ดอยเต่า":"X-ดอยเต่า","อมก๋อย":"X-อมก๋อย","กฟย.อมก๋อย":"X-อมก๋อย","กฟส.อมก๋อย":"X-อมก๋อย","บ่อหลวง":"X-บ่อหลวง","กฟย.บ่อหลวง":"X-บ่อหลวง","กฟส.บ่อหลวง":"X-บ่อหลวง","ฝาง":"A07101","กฟอ.ฝาง":"A07101","กฟส.ฝาง":"A07101","แม่อาย":"A07201","กฟส.แม่อาย":"A07201","กฟย.แม่อาย":"A07201","ไชยปราการ":"X-ไชยปราการ","กฟย.ไชยปราการ":"X-ไชยปราการ","กฟส.ไชยปราการ":"X-ไชยปราการ","หางดง":"A16101","กฟอ.หางดง":"A16101","กฟส.หางดง":"A16101","สะเมิง":"X-สะเมิง","กฟย.สะเมิง":"X-สะเมิง","กฟส.สะเมิง":"X-สะเมิง","กัลยาณิวัฒนา":"X-กัลยาณิวัฒนา","กฟย.กัลยาณิวัฒนา":"X-กัลยาณิวัฒนา","กฟส.กัลยาณิวัฒนา":"X-กัลยาณิวัฒนา","เกาะคา":"A13101","กฟอ.เกาะคา":"A13101","กฟส.เกาะคา":"A13101","ห้างฉัตร":"A13401","กฟส.ห้างฉัตร":"A13401","กฟย.ห้างฉัตร":"A13401","เถิน":"A13201","กฟส.เถิน":"A13201","กฟย.เถิน":"A13201","แม่ทะ":"A13301","กฟส.แม่ทะ":"A13301","กฟย.แม่ทะ":"A13301","เสริมงาม":"X-เสริมงาม","กฟย.เสริมงาม":"X-เสริมงาม","กฟส.เสริมงาม":"X-เสริมงาม","สบปราบ":"X-สบปราบ","กฟย.สบปราบ":"X-สบปราบ","กฟส.สบปราบ":"X-สบปราบ","แม่พริก":"X-แม่พริก","กฟย.แม่พริก":"X-แม่พริก","กฟส.แม่พริก":"X-แม่พริก","ลำปาง":"A03101","กฟจ.ลำปาง":"A03101","งาว":"A03701","กฟส.งาว":"A03701","แจ้ห่ม":"A03501","กฟส.แจ้ห่ม":"A03501","แม่เมาะ":"X-แม่เมาะ","กฟย.แม่เมาะ":"X-แม่เมาะ","กฟส.แม่เมาะ":"X-แม่เมาะ","พบชส.":"X-พบชส","กฟย.พบชส.":"X-พบชส","กฟส.พบชส.":"X-พบชส","พชบส.":"X-พบชส","กฟย.พชบส.":"X-พบชส","กฟส.พชบส.":"X-พบชส","กฟย.พิชัย-บ้านเสด็จ":"X-พบชส","กฟส.พิชัย-บ้านเสด็จ":"X-พบชส","เมืองปาน":"X-เมืองปาน","กฟย.เมืองปาน":"X-เมืองปาน","กฟส.เมืองปาน":"X-เมืองปาน","วังเหนือ":"X-วังเหนือ","กฟย.วังเหนือ":"X-วังเหนือ","กฟส.วังเหนือ":"X-วังเหนือ","กฟจ.ลำพูน":"A02101","กฟส.ป่าซาง":"A02301","กฟส.บ้านโฮ่ง":"A02501","กฟส.ลี้":"A02601","กฟส.บ้านธิ":"A02701","กฟย.แม่ทา":"X-แม่ทา","กฟย.นครเจดีย์":"X-นครเจดีย์","กฟย.เวียงหนองล่อง":"X-เวียงหนองล่อง","กฟย.ทุ่งหัวช้าง":"X-ทุ่งหัวช้าง","กฟย.แม่ตืน":"X-แม่ตืน","แม่ฮ่องสอน":"A05101","กฟจ.แม่ฮ่องสอน":"A05101","กฟส.แม่ฮ่องสอน":"A05101","ปาย":"A05301","กฟส.ปาย":"A05301","กฟย.ปาย":"A05301","แม่สะเรียง":"A05201","กฟส.แม่สะเรียง":"A05201","กฟย.แม่สะเรียง":"A05201","ขุนยวม":"X-ขุนยวม","กฟย.ขุนยวม":"X-ขุนยวม","กฟส.ขุนยวม":"X-ขุนยวม","ปางมะผ้า":"X-ปางมะผ้า","กฟย.ปางมะผ้า":"X-ปางมะผ้า","กฟส.ปางมะผ้า":"X-ปางมะผ้า","แม่ลาน้อย":"X-แม่ลาน้อย","กฟย.แม่ลาน้อย":"X-แม่ลาน้อย","กฟส.แม่ลาน้อย":"X-แม่ลาน้อย","สบเมย":"X-สบเมย","กฟย.สบเมย":"X-สบเมย","กฟส.สบเมย":"X-สบเมย","แม่ริม":"A12101","กฟอ.แม่ริม":"A12101","แม่แตง":"A12301","กฟส.แม่แตง":"A12301","เชียงดาว":"A12201","กฟส.เชียงดาว":"A12201","เวียงแหง":"X-เวียงแหง","กฟย.เวียงแหง":"X-เวียงแหง","ป่าแป๋":"X-ป่าแป๋","กฟย.ป่าแป๋":"X-ป่าแป๋","แม่สาย":"A08101","กฟอ.แม่สาย":"A08101","กฟส.แม่สาย":"A08101","แม่จัน":"A08201","กฟส.แม่จัน":"A08201","เชียงแสน":"A08301","กฟส.เชียงแสน":"A08301","แม่ฟ้าหลวง":"A08401","กฟส.แม่ฟ้าหลวง":"A08401","เทอดไทย":"X-เทอดไทย","กฟย.เทอดไทย":"X-เทอดไทย","กฟส.เทอดไทย":"X-เทอดไทย","แม่สลองนอก":"X-แม่สลองนอก","กฟย.แม่สลองนอก":"X-แม่สลองนอก","กฟส.แม่สลองนอก":"X-แม่สลองนอก","ดอยหลวง":"X-ดอยหลวง","กฟย.ดอยหลวง":"X-ดอยหลวง","กฟส.ดอยหลวง":"X-ดอยหลวง","ดอยตุง":"X-ดอยตุง","กฟฟ.ดอยตุง":"X-ดอยตุง","กฟย.ดอยตุง":"X-ดอยตุง","กฟส.ดอยตุง":"X-ดอยตุง","พาน":"A17101","กฟอ.พาน":"A17101","กฟส.พาน":"A17101","แม่ลาว":"A17301","กฟอ.แม่ลาว":"A17301","กฟส.แม่ลาว":"A17301","แม่สรวย":"A17401","กฟอ.แม่สรวย":"A17401","กฟส.แม่สรวย":"A17401","เวียงป่าเป้า":"A17201","กฟอ.เวียงป่าเป้า":"A17201","กฟส.เวียงป่าเป้า":"A17201","ป่าแดด":"X-ป่าแดด","กฟอ.ป่าแดด":"X-ป่าแดด","กฟย.ป่าแดด":"X-ป่าแดด","กฟส.ป่าแดด":"X-ป่าแดด","พะเยา":"A06101","กฟจ.พะเยา":"A06101","เชียงคำ":"A06201","กฟส.เชียงคำ":"A06201","จุน":"A06301","กฟส.จุน":"A06301","ดอกคำใต้":"A06401","กฟส.ดอกคำใต้":"A06401","แม่ใจ":"X-แม่ใจ","กฟย.แม่ใจ":"X-แม่ใจ","กฟส.แม่ใจ":"X-แม่ใจ","ภูกามยาว":"X-ภูกามยาว","กฟย.ภูกามยาว":"X-ภูกามยาว","กฟส.ภูกามยาว":"X-ภูกามยาว","แม่กา":"X-แม่กา","กฟย.แม่กา":"X-แม่กา","กฟย.แม่กา(ยกเลิก)":"X-แม่กา","กฟส.แม่กา":"X-แม่กา","ภูซาง":"X-ภูซาง","กฟย.ภูซาง":"X-ภูซาง","กฟส.ภูซาง":"X-ภูซาง","ปง":"X-ปง","กฟย.ปง":"X-ปง","กฟส.ปง":"X-ปง","เชียงม่วน":"X-เชียงม่วน","กฟย.เชียงม่วน":"X-เชียงม่วน","กฟส.เชียงม่วน":"X-เชียงม่วน","สันกำแพง":"A18101","กฟส.สันกำแพง":"A18101","กฟอ.สันกำแพง":"A18101","แม่ออน":"X-แม่ออน","กฟย.แม่ออน":"X-แม่ออน","กฟส.แม่ออน":"X-แม่ออน","สันป่าตอง":"A09101","กฟส.สันป่าตอง":"A09101","กฟอ.สันป่าตอง":"A09101","แม่วาง":"X-แม่วาง","กฟย.แม่วาง":"X-แม่วาง","กฟส.แม่วาง":"X-แม่วาง","สันทราย":"A11101","กฟอ.สันทราย":"A11101","กฟส.สันทราย":"A11101","พร้าว":"A11201","กฟส.พร้าว":"A11201","กฟย.พร้าว":"A11201","เทิง":"A10101","กฟอ.เทิง":"A10101","กฟส.เทิง":"A10101","เชียงของ":"A10201","กฟส.เชียงของ":"A10201","กฟย.เชียงของ":"A10201","ขุนตาล":"X-ขุนตาล","กฟย.ขุนตาล":"X-ขุนตาล","กฟส.ขุนตาล":"X-ขุนตาล","พญาเม็งราย":"X-พญาเม็งราย","กฟย.พญาเม็งราย":"X-พญาเม็งราย","กฟส.พญาเม็งราย":"X-พญาเม็งราย","เวียงแก่น":"X-เวียงแก่น","กฟย.เวียงแก่น":"X-เวียงแก่น","กฟส.เวียงแก่น":"X-เวียงแก่น"};
+const DEFWMS={"A01101":40,"A01601":25,"A15101":40,"A15201":25,"A04101":40,"A04201":20,"A04701":20,"A14101":40,"A14201":25,"A07101":40,"A07201":25,"A16101":40,"A13101":40,"A13201":20,"A13301":20,"A13401":25,"A03101":40,"A03501":20,"A03701":20,"A02101":52,"A02301":18,"A02501":17,"A02601":14,"A02701":21,"A05101":40,"A05201":20,"A05301":20,"A12101":36,"A12201":20,"A12301":29,"A08101":40,"A08201":25,"A08301":20,"A08401":20,"A17101":40,"A17201":25,"A17301":25,"A17401":25,"A06101":40,"A06201":25,"A06301":20,"A06401":20,"A18101":40,"A09101":40,"A11101":40,"A11201":25,"A10101":40,"A10201":25};
+const U={};UNITS.forEach(u=>{U[u.id]=u;});
+const MAIN=UNITS.filter(u=>u.grp==="M"),SUN=UNITS.filter(u=>u.grp==="S"),XUN=UNITS.filter(u=>u.grp==="X");
+const LSU=UNITS.filter(u=>u.grp!=="X");
+const FAMS=MAIN.map(m=>({id:m.id,main:m,S:SUN.filter(u=>u.fam===m.id),X:XUN.filter(u=>u.fam===m.id)}));
+const GRP={M:{t:"การไฟฟ้าแม่",s:"แม่",c:"#1a237e",bg:"#e8eaf6"},S:{t:"การไฟฟ้าสาขา S",s:"S",c:"#7b1fa2",bg:"#f3e5f5"},X:{t:"การไฟฟ้าสาขา XS",s:"XS",c:"#00796b",bg:"#e0f2f1"}};
+const OMS_T="1. งานแก้ไฟฟ้าขัดข้อง",PS_PER=16;
+const TM=["","มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const THR=[{v:.85,l:"ระดับ 2 (85%)",c:"#FF9800"},{v:.9,l:"ระดับ 3 (90%)",c:"#4CAF50"},{v:.95,l:"ระดับ 4 (95%)",c:"#F44336"},{v:1,l:"ระดับ 5 (100%)",c:"#2196F3"}];
+const ty=y=>y?y+543:"";
+const mkey=(y,m)=>y+"-"+String(m).padStart(2,"0");
+const norm=s=>String(s||"").replace(/[​‌‍﻿]/g,"").trim().replace(/\s+/g," ");
+const toInt=v=>{const n=parseInt(v);return isNaN(n)?0:n;};
+const isFilled=v=>v!==""&&v!==null&&v!==undefined;
+const kl=k=>k>=1?5:k>=.95?4:k>=.9?3:k>=.85?2:1;
+const kc=k=>k>=1?"#2e7d32":k>=.9?"#e65100":"#c62828";
+const validMonthKeys=o=>Object.keys(o||{}).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort();
+
+/* ══ Firebase key encode (ชื่อคนอาจมี . / # $ [ ]) ══ */
+const ENC=[[".","·"],["/","∕"],["#","＃"],["$","＄"],["[","［"],["]","］"]];
+const encK=k=>ENC.reduce((s,[a,b])=>s.split(a).join(b),k);
+const decK=k=>ENC.reduce((s,[a,b])=>s.split(b).join(a),k);
+function encKeys(o){if(!o||typeof o!=="object")return o;if(Array.isArray(o))return o.map(encKeys);const r={};for(const[k,v]of Object.entries(o))r[encK(k)]=encKeys(v);return r;}
+function decKeys(o){if(!o||typeof o!=="object")return o;if(Array.isArray(o))return o.map(decKeys);const r={};for(const[k,v]of Object.entries(o))r[decK(k)]=decKeys(v);return r;}
+
+/* ══ อ่านไฟล์ data.xlsx (รวมทั้งเขตในไฟล์เดียว) ══ */
+function readWorkbook(wb){
+  const sh=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(sh,{header:1});
+  const f0=String(raw[0]?.[0]||"");const mM=f0.match(/Month\D+(\d+)/i);const yM=f0.match(/Year\D+(\d+)/i);
+  const month=mM?parseInt(mM[1]):null,year=yM?parseInt(yM[1]):null;
+  let hi=-1;for(let i=0;i<Math.min(raw.length,10);i++){if(raw[i]?.includes?.("PEA_Name")||raw[i]?.[0]==="PEA_Name"){hi=i;break;}}
+  if(hi<0)return{error:"ไม่พบหัวคอลัมน์ PEA_Name — ตรวจสอบว่าเป็นไฟล์ที่ export จาก WeSafe"};
+  const cm={};raw[hi].forEach((h,i)=>{if(h)cm[String(h).trim()]=i;});
+  const ci={pea:cm["PEA_Name"]??0,type:cm["ประเภทงาน"]??4,sup:cm["ผู้ควบคุมงาน"]??9,date:cm["วันเวลา(เปิดงาน)"]??2};
+  const sup={};let mx=0,matched=0,all=0;
+  raw.slice(hi+1).forEach(r=>{
+    if(!r||!r[ci.pea]||r[ci.pea]==="PEA_Name")return;all++;
+    const dm=String(r[ci.date]||"").match(/(\d{2})\/\d{2}\/\d{4}/);if(dm)mx=Math.max(mx,parseInt(dm[1]));
+    const uid=NM[String(r[ci.pea]).trim()];if(!uid)return;matched++;
+    const nm=norm(r[ci.sup])||"(ไม่ระบุชื่อ)";const isO=String(r[ci.type]||"").trim()===OMS_T;
+    if(!sup[uid])sup[uid]={};const a=sup[uid][nm]||(sup[uid][nm]=[0,0]);a[0]++;if(isO)a[1]++;
+  });
+  const currentDay=mx||(month&&year?new Date(year,month,0).getDate():30);
+  return{month,year,currentDay,sup,matched,all};
+}
+/* นับผลงานรายหน่วยจากชื่อช่าง (ตรรกะเดียวกับระบบของแต่ละหน่วย) */
+function computeOd(sup,csnObj,hotlines){
+  const CSN=new Set();Object.values(csnObj||{}).forEach(a=>(a||[]).forEach(n=>{const k=norm(n);if(k)CSN.add(k);}));
+  const HL=new Set((hotlines||[]).map(norm).filter(Boolean));
+  const od={};
+  UNITS.forEach(u=>{const d={total:0,oms:0,pspm:0,wms:0};const s=(sup&&sup[u.id])||{};
+    Object.entries(s).forEach(([nm,v])=>{const t=toInt(v&&v[0]),o=toInt(v&&v[1]);if(HL.has(nm))return;d.total+=t;d.oms+=o;if(CSN.has(nm))d.pspm+=t-o;});
+    d.wms=d.total-d.oms-d.pspm;od[u.id]=d;});
+  return od;
+}
+const omsCalc=(inc,day,dim,pct)=>{const est=day>0?Math.round(toInt(inc)*(dim/day)):0;return{est,target:Math.round(est*pct/100)};};
+const psAuto=(csn,uid)=>((csn&&csn[uid])||[]).filter(n=>norm(n)).length*PS_PER;
+function kpiLS(d,ps,oms,wms){const p=ps||16;const ot=Math.max(oms||1,.01);const w=wms||14;
+  const rP=Math.min((d.pspm/p)*.41,.41),yP=Math.min((d.oms/ot)*.41,.41),gP=Math.min((d.wms/w)*.21,.21);
+  return{rP,yP,gP,kpi:rP+yP+gP,p,ot,w};}
+function buildRows(md){
+  const od=md.officeData||{};const z={total:0,oms:0,pspm:0,wms:0};
+  const ls=LSU.map(u=>{const d=od[u.id]||z;return{...u,d,...kpiLS(d,md.psPmTargets?.[u.id],md.omsTargets?.[u.id],md.wmsTargets?.[u.id])};});
+  const xt=toInt(md.xsTarget)||12;
+  const xs=XUN.map(u=>{const d=od[u.id]||z;return{...u,d,actual:d.total,target:xt,pct:d.total/xt};});
+  return{M:ls.filter(r=>r.grp==="M"),S:ls.filter(r=>r.grp==="S"),X:xs,xt};
+}
+
+/* ══ กราฟแนวนอน (การไฟฟ้าแม่ / S) ══ */
+const SLS=1.03;
+function ChartArea({children}){
+  return(<div>
+    <div className="thr-legend">{THR.map((t,i)=><span key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,fontWeight:700,color:t.c}}>
+      <span style={{width:12,borderTop:"2px dashed "+t.c,display:"inline-block"}}/>{t.l}</span>)}</div>
+    <div style={{position:"relative"}}>
+    {THR.map((t,i)=>{const f=(t.v/SLS).toFixed(6);return(
+      <div key={i} style={{position:"absolute",left:"calc(var(--cl) + (100% - var(--cl) - var(--cv)) * "+f+")",top:0,bottom:0,zIndex:2,pointerEvents:"none"}}>
+        <div style={{position:"absolute",top:0,bottom:0,borderLeft:"2px dashed "+t.c,opacity:.6,width:0}}/>
+        <div className="thr-label" style={{position:"absolute",top:62,left:6,whiteSpace:"nowrap",fontSize:11,fontWeight:700,color:t.c,transform:"rotate(-55deg)",transformOrigin:"bottom left"}}>{t.l}</div>
+      </div>);})}
+    <div className="chart-pad" style={{paddingTop:84}}>{children}</div>
+  </div></div>);}
+function BarRow({u,segs,txt,tc}){
+  return(<div style={{display:"flex",alignItems:"center",marginBottom:7}}>
+    <div style={{width:"var(--cl)",flexShrink:0,textAlign:"right",paddingRight:10,fontWeight:700,fontSize:13,color:"#263238",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+      {u.code&&<span className="ucode">{u.code}:</span>}{u.label}</div>
+    <div style={{flex:1,height:28,background:"#eceff1",borderRadius:4,display:"flex",overflow:"hidden"}}>
+      {segs.map((s,i)=>s.w>.3&&<div key={i} className={"seg"+(s.w<22?" seg-sm":"")} style={{width:s.w+"%",height:"100%",background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11.5,fontWeight:700,color:s.tc,borderRight:"1px solid rgba(0,0,0,.18)",overflow:"hidden",whiteSpace:"nowrap"}}><span>{s.label}</span></div>)}
+    </div>
+    <div style={{width:"var(--cv)",flexShrink:0,paddingLeft:8,fontSize:13.5,fontWeight:800,color:tc}}>{txt}</div>
+  </div>);}
+const pctTxt=v=>(v*100).toFixed(2)+"%";
+function LSChart({rows}){return(<div>
+  <ChartArea>{rows.map(r=>{const segs=[];
+    if(r.rP>.003)segs.push({w:(r.rP/SLS)*100,bg:"#d32f2f",label:r.rP>=.05?pctTxt(r.rP):"",tc:"#fff"});
+    if(r.yP>.003)segs.push({w:(r.yP/SLS)*100,bg:"#fbc02d",label:r.yP>=.05?pctTxt(r.yP):"",tc:"#333"});
+    if(r.gP>.003)segs.push({w:(r.gP/SLS)*100,bg:"#2e7d32",label:r.gP>=.05?pctTxt(r.gP):"",tc:"#fff"});
+    return <BarRow key={r.id} u={r} segs={segs} txt={pctTxt(r.kpi)} tc={kc(r.kpi)}/>;})}</ChartArea>
+  <div style={{display:"flex",gap:18,justifyContent:"center",marginTop:10,flexWrap:"wrap",fontSize:12.5}}>
+    {[["#d32f2f","ก่อสร้าง/ปรับปรุง PS/PM (Max 41%)"],["#fbc02d","แก้ไฟฟ้าขัดข้อง OMS (Max 41%)"],["#2e7d32","บำรุงรักษา WMS (Max 21%)"]].map(([c,l])=>
+      <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:16,height:12,borderRadius:2,background:c}}/>{l}</div>)}</div></div>);}
+
+/* ══ กราฟแนวตั้ง (XS) ══ */
+function XSChart({rows,target}){
+  const mx=Math.max(target*1.4,...rows.map(r=>r.actual),1);const top=Math.ceil(mx/5)*5;const H=280;
+  const ticks=[];for(let v=0;v<=top;v+=5)ticks.push(v);
+  return(<div className="xs-wrap"><div style={{minWidth:rows.length*25+44,paddingTop:22}}>
+    <div style={{position:"relative",height:H,marginLeft:36,display:"flex",borderLeft:"1px solid #b0bec5",borderBottom:"1px solid #b0bec5"}}>
+      {ticks.map(v=><div key={v} style={{position:"absolute",left:0,right:0,bottom:(v/top)*H,borderTop:v?"1px solid #eceff1":"none",zIndex:0}}>
+        <span style={{position:"absolute",left:-34,top:-8,width:28,textAlign:"right",fontSize:11,color:"#607d8b"}}>{v}</span></div>)}
+      <div style={{position:"absolute",left:0,right:0,bottom:(target/top)*H,borderTop:"3px solid #e53935",zIndex:3,pointerEvents:"none"}}>
+        <span style={{position:"absolute",right:4,top:-21,fontSize:12,fontWeight:800,color:"#e53935",background:"rgba(255,255,255,.9)",padding:"0 6px",borderRadius:4}}>เกณฑ์ชี้วัดระดับ 5 = {target} ใบ</span></div>
+      {rows.map(r=>{const pass=r.actual>=target;return(<div key={r.id} title={r.label+" : "+r.actual+" ใบ"} style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",alignItems:"center",zIndex:2,minWidth:0}}>
+        <div style={{fontSize:10.5,fontWeight:800,color:pass?"#33691e":"#c62828",marginBottom:1}}>{r.actual}</div>
+        <div style={{width:"66%",height:Math.max((r.actual/top)*H,1),background:pass?"linear-gradient(#aed581,#7cb342)":"linear-gradient(#ef9a9a,#e53935)",borderRadius:"3px 3px 0 0"}}/>
+      </div>);})}
+    </div>
+    <div style={{display:"flex",marginLeft:36,height:128}}>
+      {rows.map(r=><div key={r.id} style={{flex:1,position:"relative",minWidth:0}}><div className="xs-lbl">{r.label}</div></div>)}
+    </div>
+  </div></div>);
+}
+
+/* ══ Dashboard 3 ส่วน ══ */
+function LevelChips({rows}){
+  const c=[5,4,3,2,1].map(l=>[l,rows.filter(r=>kl(r.kpi)===l).length]);
+  const col={5:"#2196F3",4:"#F44336",3:"#4CAF50",2:"#FF9800",1:"#9e9e9e"};
+  return(<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{c.map(([l,n])=>n>0&&<span key={l} className="chip" style={{background:col[l]+"22",color:col[l]}}>ระดับ {l}: {n}</span>)}</div>);}
+function SecHead({g,n,extra}){
+  return(<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:6}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:6,height:30,borderRadius:3,background:GRP[g].c}}/>
+      <div><div style={{fontWeight:800,fontSize:18,color:GRP[g].c}}>{GRP[g].t} ({n} แห่ง)</div></div>
+    </div>{extra}</div>);}
+function LSTable({rows}){return(<div style={{overflowX:"auto",marginTop:12}}><table className="tbl"><thead><tr>
+  <th style={{textAlign:"left"}}>การไฟฟ้า</th><th style={{background:"#c62828"}}>PS/PM ผลงาน/เป้า</th><th style={{background:"#fbc02d",color:"#333"}}>OMS ผลงาน/เป้า</th><th style={{background:"#1b5e20"}}>WMS ผลงาน/เป้า</th><th>ใบงานรวม</th><th style={{background:"#1a237e"}}>KPI</th><th>ระดับ</th></tr></thead>
+  <tbody>{rows.map(r=><tr key={r.id}><td className="l"><span className="ucode">{r.code}:</span>{r.label}</td>
+    <td>{r.d.pspm} / {r.p}</td><td>{r.d.oms} / {r.ot>=1?Math.round(r.ot):0}</td><td>{r.d.wms} / {r.w}</td><td>{r.d.total}</td>
+    <td style={{fontWeight:800,color:kc(r.kpi)}}>{pctTxt(r.kpi)}</td><td style={{fontWeight:800}}>{kl(r.kpi)}</td></tr>)}</tbody></table></div>);}
+function XSTable({rows}){return(<div style={{overflowX:"auto",marginTop:12}}><table className="tbl"><thead><tr><th style={{textAlign:"left"}}>การไฟฟ้า</th><th>ใบงาน</th><th>เกณฑ์</th><th>ผล</th></tr></thead>
+  <tbody>{rows.map(r=><tr key={r.id}><td className="l">{r.label} <span className="hint">({U[r.fam]?.label})</span></td><td style={{fontWeight:800}}>{r.actual}</td><td>{r.target}</td>
+    <td>{r.actual>=r.target?<span className="badge" style={{background:"#43a047"}}>ผ่าน</span>:<span className="badge" style={{background:"#e53935"}}>ไม่ผ่าน</span>}</td></tr>)}</tbody></table></div>);}
+function Section({id,g,rows,xt}){
+  const [showT,setShowT]=useState(false);
+  const pass=g==="X"?rows.filter(r=>r.actual>=xt).length:rows.filter(r=>r.kpi>=1).length;
+  return(<div className="card" id={id}>
+    <SecHead g={g} n={rows.length} extra={<div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      {g==="X"?<span className="chip" style={{background:"#e8f5e9",color:"#2e7d32"}}>ผ่านเกณฑ์ {xt} ใบ: {pass}/{rows.length}</span>:<LevelChips rows={rows}/>}
+      <button className="btn out sm" data-html2canvas-ignore="true" onClick={()=>setShowT(!showT)}>{showT?"ซ่อนตัวเลข":"ดูตัวเลข"}</button></div>}/>
+    {g==="X"?<XSChart rows={rows} target={xt}/>:<LSChart rows={rows}/>}
+    {showT&&(g==="X"?<XSTable rows={rows}/>:<LSTable rows={rows}/>)}
+  </div>);}
+async function exportPDF(md){
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  const ids=["sec-M","sec-S","sec-X"];
+  for(let i=0;i<ids.length;i++){const el=document.getElementById(ids[i]);if(!el)continue;
+    const c=await html2canvas(el,{scale:2,backgroundColor:"#ffffff",windowWidth:1400});
+    const img=c.toDataURL("image/jpeg",.92);const pw=297,ph=210,m=8;let w=pw-2*m,h=c.height*w/c.width;if(h>ph-2*m-8){h=ph-2*m-8;w=c.width*h/c.height;}
+    if(i>0)pdf.addPage();
+    pdf.addImage(img,"JPEG",(pw-w)/2,m+6,w,h);}
+  pdf.save("WeSafe-KPI-กฟน1-"+TM[md.month]+ty(md.year)+".pdf");
+}
+function RegionDash({md}){
+  const R=useMemo(()=>buildRows(md),[md]);
+  const [busy,setBusy]=useState(false);
+  const total=UNITS.reduce((s,u)=>s+(md.officeData?.[u.id]?.total||0),0);
+  return(<div>
+    <div className="card" style={{background:"linear-gradient(135deg,#1a237e,#3949ab)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+      <div><div style={{fontSize:20,fontWeight:800}}>สรุปผลการเปิดใบงาน WeSafe — {TM[md.month]} {ty(md.year)}</div>
+        <div style={{opacity:.85,fontSize:14}}>ข้อมูล ณ วันที่ {md.currentDay} {TM[md.month]} {ty(md.year)} • ใบงานทั้งเขต {total.toLocaleString()} รายการ • 92 การไฟฟ้า</div></div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}} data-html2canvas-ignore="true">
+        {[["sec-M","แม่ 18"],["sec-S","S 30"],["sec-X","XS 44"]].map(([id,l])=><a key={id} href={"#"+id} className="btn sm" style={{background:"rgba(255,255,255,.18)",color:"#fff",textDecoration:"none"}}>{l}</a>)}
+        <button className="btn sm" style={{background:"#fff",color:"#1a237e"}} disabled={busy} onClick={async()=>{setBusy(true);try{await exportPDF(md);}catch(e){alert("สร้าง PDF ไม่สำเร็จ: "+e.message);}setBusy(false);}}>{busy?"กำลังสร้าง...":"⬇ PDF"}</button>
+      </div></div>
+    <Section id="sec-M" g="M" rows={R.M}/>
+    <Section id="sec-S" g="S" rows={R.S}/>
+    <Section id="sec-X" g="X" rows={R.X} xt={R.xt}/>
+  </div>);}
+function MonthPicker({allD,value,onChange}){
+  const keys=validMonthKeys(allD).reverse();
+  return(<select value={value||""} onChange={e=>onChange(e.target.value)} style={{padding:"8px 12px",borderRadius:10,border:"2px solid #c5cae9",fontSize:15,fontFamily:"inherit",fontWeight:700,color:"#1a237e",background:"#fff"}}>
+    {keys.map(k=>{const [y,m]=k.split("-");return <option key={k} value={k}>{TM[parseInt(m)]} {ty(parseInt(y))}</option>;})}</select>);}
+function DashView({allD,loaded}){
+  const keys=validMonthKeys(allD);const [sel,setSel]=useState(null);
+  const k=sel&&allD[sel]?sel:keys[keys.length-1];
+  if(!loaded)return <div className="card" style={{textAlign:"center",color:"#888"}}>กำลังโหลดข้อมูล...</div>;
+  if(!k)return <div className="card" style={{textAlign:"center",color:"#888",padding:40}}>ยังไม่มีข้อมูลที่บันทึก</div>;
+  return(<div>
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,flexWrap:"wrap"}}><span style={{fontWeight:700,color:"#455a64"}}>เลือกเดือน:</span><MonthPicker allD={allD} value={k} onChange={setSel}/></div>
+    <RegionDash md={allD[k]}/>
+  </div>);}
+
+/* ══ ส่วนกรอกข้อมูล ══ */
+function StepBar({step,setStep,canReview}){
+  const S=[["1","นำเข้าไฟล์ data"],["2","กรอกข้อมูลแยกรายการไฟฟ้า"],["3","ตรวจทาน & บันทึก"]];
+  return(<div className="stepbar">{S.map(([n,l],i)=>{const st=i+1;const cls=st===step?"sb on":st<step?"sb done":"sb";
+    return <button key={n} className={cls} disabled={st===1||(st===3&&!canReview)} onClick={()=>setStep(st)}>{st<step?"✓ ":""}{n}. {l}</button>;})}</div>);}
+function GBadge({g}){return <span className="badge" style={{background:GRP[g].c}}>{GRP[g].s}</span>;}
+
+function NameRow({uid,name,idx,onChange,onRemove,sup,dlId}){
+  const n=norm(name);const here=n&&sup?.[uid]?.[n]?toInt(sup[uid][n][0]):0;
+  let fb=null;
+  if(n){if(here>0)fb=<span style={{color:"#2e7d32",fontWeight:700}}>✓ พบ {here} ใบในหน่วยนี้</span>;
+    else{const other=Object.keys(sup||{}).find(o=>sup[o]&&sup[o][n]);
+      fb=other?<span style={{color:"#e65100",fontWeight:700}}>⚠ ไม่พบในหน่วยนี้ (พบที่ {U[other]?.label} {toInt(sup[other][n][0])} ใบ)</span>
+              :<span style={{color:"#9e9e9e",fontWeight:700}}>⚠ ไม่พบชื่อนี้ในไฟล์เดือนนี้</span>;}}
+  return(<div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:6}}>
+    <span style={{width:20,color:"#888",fontWeight:700,textAlign:"right"}}>{idx+1}.</span>
+    <input className="inp txt" list={dlId} value={name} placeholder="พิมพ์หรือเลือกชื่อจากไฟล์" onChange={e=>onChange(e.target.value)} style={{flex:"1 1 220px",maxWidth:320}}/>
+    <span style={{fontSize:12.5}}>{fb}</span>
+    <button className="btn sm" style={{background:"#ffebee",color:"#c62828"}} onClick={onRemove} title="ลบช่าง">✕</button>
+  </div>);}
+
+function LSUnitCard({u,ctx}){
+  const {od,sup,csn,setCsnU,inc,setIncU,wms,setWmsU,psMan,psVal,setPsU,resetPsU,day,dim,pct,psT,omsT}=ctx;
+  const d=od[u.id]||{total:0,oms:0,pspm:0,wms:0};
+  const names=(csn[u.id]&&csn[u.id].length)?csn[u.id]:[""];
+  const oc=omsCalc(inc[u.id],day,dim,pct);
+  const k=kpiLS(d,psT(u.id),omsT(u.id),toInt(wms[u.id]));
+  const missInc=!isFilled(inc[u.id]),missW=!(toInt(wms[u.id])>0);
+  const dlId="dl-"+u.id;
+  const opts=Object.entries(sup?.[u.id]||{}).sort((a,b)=>b[1][0]-a[1][0]);
+  const g=GRP[u.grp];
+  return(<div className="ucard" style={{borderColor:g.c+"55"}} data-unit={u.id}>
+    <div className="uhead" style={{background:g.c}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}><span className="badge" style={{background:"rgba(255,255,255,.25)"}}>{g.s}</span>
+        <span style={{fontWeight:800,fontSize:16}}>{u.code} {u.label}</span></div>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        {(missInc||missW)?<span className="badge" style={{background:"#ffa726"}}>ยังไม่ครบ</span>:<span className="badge" style={{background:"#43a047"}}>ครบ ✓</span>}
+        {missInc?<span style={{fontWeight:800,background:"rgba(255,255,255,.85)",color:"#90a4ae",borderRadius:8,padding:"2px 10px"}}>KPI รอกรอก</span>
+          :<span style={{fontWeight:800,background:"#fff",color:kc(k.kpi),borderRadius:8,padding:"2px 10px"}}>KPI {pctTxt(k.kpi)}</span>}</div>
+    </div>
+    <div className="ubody">
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:6}}>
+        <span className="chip">จากไฟล์: ใบงานรวม {d.total}</span>
+        <span className="chip" style={{background:"#ffebee",color:"#c62828"}}>PS/PM {d.pspm}</span>
+        <span className="chip" style={{background:"#fff8e1",color:"#8d6e00"}}>OMS {d.oms}</span>
+        <span className="chip" style={{background:"#e8f5e9",color:"#1b5e20"}}>WMS {d.wms}</span>
+      </div>
+      <div className="step"><div className="num">1</div><div style={{flex:1}}>
+        <div style={{fontWeight:700}}>จำนวนเหตุ OMS <span className="hint">(ถึงวันที่ {day})</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginTop:4}}>
+          <input className={"inp"+(missInc?" miss":"")} type="number" min="0" inputMode="numeric" data-inc={u.id} value={isFilled(inc[u.id])?inc[u.id]:""} placeholder="—" onChange={e=>setIncU(u.id,e.target.value)}/>
+          <span className="hint">→ ประมาณทั้งเดือน <b>{oc.est}</b> → <b style={{color:"#8d6e00"}}>เป้า OMS {oc.target}</b> ({pct}%)</span></div></div></div>
+      <div className="step"><div className="num">2</div><div style={{flex:1}}>
+        <div style={{fontWeight:700,marginBottom:6}}>ช่างควบคุมงานก่อสร้าง (PS/PM) <span className="hint">— เลือกชื่อจากรายการในไฟล์ได้</span></div>
+        <datalist id={dlId}>{opts.map(([nm,v])=><option key={nm} value={nm}>{v[0]} ใบ</option>)}</datalist>
+        {names.map((nm,i)=><NameRow key={i} idx={i} uid={u.id} name={nm} sup={sup} dlId={dlId}
+          onChange={v=>{const a=[...names];a[i]=v;setCsnU(u.id,a);}} onRemove={()=>{const a=names.filter((_,j)=>j!==i);setCsnU(u.id,a);}}/>)}
+        <button className="btn sm" style={{background:"#c62828",color:"#fff",marginLeft:26}} onClick={()=>setCsnU(u.id,[...names,""])}>+ เพิ่มช่าง</button>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:10}}>
+          <span style={{fontWeight:700}}>เป้า PS/PM</span>
+          <input className="inp" type="number" min="0" value={psT(u.id)} onChange={e=>setPsU(u.id,e.target.value)} style={{borderColor:"#ef9a9a",color:"#c62828"}}/>
+          {psMan[u.id]?<><span className="hint">(กำหนดเอง)</span><button className="btn sm out" onClick={()=>resetPsU(u.id)}>↺ คำนวณอัตโนมัติ</button></>
+            :<span className="hint">(อัตโนมัติ: {names.filter(n=>norm(n)).length} คน × {PS_PER})</span>}
+        </div></div></div>
+      <div className="step"><div className="num">3</div><div style={{flex:1,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+        <span style={{fontWeight:700}}>เป้า WMS</span>
+        <input className={"inp"+(missW?" miss":"")} type="number" min="0" data-wms={u.id} value={isFilled(wms[u.id])?wms[u.id]:""} onChange={e=>setWmsU(u.id,e.target.value)} style={{borderColor:missW?undefined:"#a5d6a7",color:"#1b5e20"}}/>
+        <span className="hint">ใบงาน/เดือน</span></div></div>
+    </div></div>);
+}
+function XSFamList({units,od,xst}){
+  if(!units.length)return null;
+  return(<div className="ucard" style={{borderColor:GRP.X.c+"55"}}>
+    <div className="uhead" style={{background:GRP.X.c}}><div style={{display:"flex",alignItems:"center",gap:8}}><span className="badge" style={{background:"rgba(255,255,255,.25)"}}>XS</span>
+      <span style={{fontWeight:800}}>การไฟฟ้า XS ในสังกัด ({units.length} แห่ง)</span></div><span style={{fontSize:13}}>เกณฑ์ {xst} ใบ — ไม่ต้องกรอก</span></div>
+    <div className="ubody" style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+      {units.map(u=>{const t=od[u.id]?.total||0;const p=t>=xst;return(<span key={u.id} className="chip" style={{background:p?"#e8f5e9":"#ffebee",color:p?"#2e7d32":"#c62828",fontSize:13.5,padding:"5px 12px"}}>
+        {u.label}: {t} ใบ {p?"✓":"✗"}</span>);})}
+    </div></div>);}
+
+function FamNav({fi,setFi,famStatus}){
+  return(<div className="famnav">{FAMS.map((f,i)=>{const st=famStatus[i];return(
+    <button key={f.id} className={"fam"+(i===fi?" on":"")} onClick={()=>setFi(i)}>
+      <div style={{minWidth:0}}><div style={{fontWeight:800,fontSize:13.5,color:"#1a237e",whiteSpace:"nowrap"}}><span className="ucode">{f.main.code}</span> {f.main.label}</div>
+        <div className="hint">แม่ 1{f.S.length?" · S "+f.S.length:""}{f.X.length?" · XS "+f.X.length:""}</div></div>
+      {st.miss===0?<span className="badge" style={{background:"#43a047"}}>✓</span>:<span className="badge" style={{background:"#ffa726"}}>เหลือ {st.miss}</span>}
+    </button>);})}</div>);}
+
+function GlobalBox({ctx}){
+  const {day,setDay,dim,pct,setPct,xst,setXst,hl,setHl,meta}=ctx;
+  const [open,setOpen]=useState(false);
+  return(<div className="card" style={{background:"#f8f9fb",border:"2px solid #cfd8dc"}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+      <div style={{fontWeight:800,fontSize:16,color:"#37474f"}}>⚙ ค่าร่วมทั้งเขต <span className="hint" style={{fontWeight:600}}>— ใช้กับทุกการไฟฟ้า กรอกครั้งเดียว</span></div>
+      <button className="btn sm out" onClick={()=>setOpen(!open)}>{open?"ซ่อนรายชื่อ Hotline":"รายชื่อ Hotline ("+hl.filter(n=>norm(n)).length+")"}</button></div>
+    <div style={{display:"flex",gap:18,flexWrap:"wrap",marginTop:10,alignItems:"center"}}>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontWeight:700}}>ข้อมูล OMS ถึงวันที่ <input className="inp" type="number" min="1" max={dim} value={day} onChange={e=>setDay(toInt(e.target.value))}/> <span className="hint">จาก {dim} วัน</span></label>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontWeight:700}}>เป้า OMS = <input className="inp" type="number" min="0" max="100" value={pct} onChange={e=>setPct(toInt(e.target.value))}/> % ของเหตุ</label>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontWeight:700}}>เกณฑ์ XS <input className="inp" type="number" min="1" value={xst} onChange={e=>setXst(toInt(e.target.value)||12)}/> ใบ/เดือน</label>
+    </div>
+    {open&&<div style={{marginTop:12,paddingTop:10,borderTop:"1px dashed #cfd8dc"}}>
+      <div style={{fontWeight:700,marginBottom:6}}>รายชื่อหัวหน้าชุดงาน Hotline <span className="hint">— ใบงานของคนในรายชื่อนี้จะไม่ถูกนับเข้า KPI ทุกหน่วย</span></div>
+      {(hl.length?hl:[""]).map((nm,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:6,alignItems:"center"}}>
+        <span style={{width:20,color:"#888",fontWeight:700,textAlign:"right"}}>{i+1}.</span>
+        <input className="inp txt" value={nm} style={{maxWidth:320}} placeholder="ชื่อ-สกุล" onChange={e=>{const a=[...(hl.length?hl:[""])];a[i]=e.target.value;setHl(a);}}/>
+        <button className="btn sm" style={{background:"#ffebee",color:"#c62828"}} onClick={()=>setHl((hl.length?hl:[""]).filter((_,j)=>j!==i))}>✕</button></div>)}
+      <button className="btn sm" style={{background:"#1565c0",color:"#fff",marginLeft:26}} onClick={()=>setHl([...(hl.length?hl:[""]),""])}>+ เพิ่มชื่อ</button>
+    </div>}
+  </div>);}
+
+function ReviewTable({ctx,goFam}){
+  const {od,inc,wms,psT,omsT,csn}=ctx;
+  return(<div style={{overflowX:"auto"}}><table className="tbl"><thead><tr>
+    <th style={{textAlign:"left"}}>การไฟฟ้า</th><th>ประเภท</th><th style={{background:"#f9a825",color:"#333"}}>เหตุ OMS</th><th style={{background:"#f9a825",color:"#333"}}>เป้า OMS</th>
+    <th style={{background:"#c62828"}}>ช่าง</th><th style={{background:"#c62828"}}>เป้า PS/PM</th><th style={{background:"#1b5e20"}}>เป้า WMS</th><th>ผลงาน PS/OMS/WMS</th><th style={{background:"#1a237e"}}>KPI</th></tr></thead>
+    <tbody>{FAMS.map((f,fi)=>[f.main,...f.S].map(u=>{const d=od[u.id];const k=kpiLS(d,psT(u.id),omsT(u.id),toInt(wms[u.id]));
+      const mi=!isFilled(inc[u.id]),mw=!(toInt(wms[u.id])>0);const miss={background:"#fff3e0",color:"#e65100",fontWeight:800};
+      return(<tr key={u.id} style={{cursor:"pointer",borderTop:u.grp==="M"?"2px solid #c5cae9":undefined}} onClick={()=>goFam(fi)} title="คลิกเพื่อไปกรอก">
+        <td className="l"><span className="ucode">{u.code}:</span>{u.label}</td><td><GBadge g={u.grp}/></td>
+        <td style={mi?miss:{}}>{mi?"ยังไม่กรอก":inc[u.id]}</td><td>{omsT(u.id)}</td>
+        <td>{((csn[u.id])||[]).filter(n=>norm(n)).length}</td><td>{psT(u.id)}</td><td style={mw?miss:{}}>{mw?"ยังไม่กรอก":wms[u.id]}</td>
+        <td>{d.pspm} / {d.oms} / {d.wms}</td><td style={{fontWeight:800,color:kc(k.kpi)}}>{pctTxt(k.kpi)}</td></tr>);}))}</tbody></table></div>);}
+
+const DRAFT=k=>"wesafe-n1-draft-"+k;
+function Editor({session,settings,user,onClose,onSaved}){
+  const {month,year,currentDay,sup,existing}=session;const key=mkey(year,month);
+  const dim=new Date(year,month,0).getDate();
+  const init=useMemo(()=>{
+    const src=existing||{};const s=settings||{};
+    const csn0=existing?(src.csnNames||{}):(s.csnNames||{});
+    const wms0={};LSU.forEach(u=>{const v=existing?src.wmsTargets?.[u.id]:(s.wmsTargets?.[u.id]);wms0[u.id]=isFilled(v)?v:(DEFWMS[u.id]??"");});
+    const inc0={};LSU.forEach(u=>{const v=existing?src.omsIncidents?.[u.id]:undefined;inc0[u.id]=isFilled(v)?v:"";});
+    const psMan0=existing?(src.psManual||{}):(s.psManual||{});
+    const psVal0=existing?(src.psPmTargets||{}):(s.psTargets||{});
+    return{csn:csn0,wms:wms0,inc:inc0,psMan:psMan0,psVal:psVal0,pct:toInt(existing?src.omsPct:s.omsPct)||35,
+      day:existing&&src.omsDay?toInt(src.omsDay):currentDay,xst:toInt(existing?src.xsTarget:s.xsTarget)||12,hl:(existing?src.hotlineNames:s.hotlineNames)||[]};
+  },[]);
+  const [csn,setCsn]=useState(init.csn),[wms,setWms]=useState(init.wms),[inc,setInc]=useState(init.inc);
+  const [psMan,setPsMan]=useState(init.psMan),[psVal,setPsVal]=useState(init.psVal);
+  const [pct,setPct]=useState(init.pct),[day,setDay]=useState(init.day),[xst,setXst]=useState(init.xst),[hl,setHl]=useState(init.hl);
+  const [step,setStep]=useState(2),[fi,setFi]=useState(0);
+  const [draft,setDraft]=useState(null);const [msg,setMsg]=useState(null);const [saving,setSaving]=useState(false);const [confirmSave,setConfirmSave]=useState(false);
+  const topRef=useRef();
+  // ตรวจร่างที่กรอกค้าง
+  useEffect(()=>{try{const raw=localStorage.getItem(DRAFT(key));if(raw){const d=JSON.parse(raw);const savedAt=existing?.savedAt?Date.parse(existing.savedAt):0;if(d.ts>savedAt)setDraft(d);}}catch(e){}},[]);
+  const dirty=useRef(false);
+  useEffect(()=>{if(!dirty.current)return;try{localStorage.setItem(DRAFT(key),JSON.stringify({csn,wms,inc,psMan,psVal,pct,day,xst,hl,ts:Date.now()}));}catch(e){}},[csn,wms,inc,psMan,psVal,pct,day,xst,hl]);
+  const touch=f=>(...a)=>{dirty.current=true;f(...a);};
+  const od=useMemo(()=>computeOd(sup,csn,hl),[sup,csn,hl]);
+  const psT=uid=>psMan[uid]?toInt(psVal[uid]):psAuto(csn,uid);
+  const omsT=uid=>omsCalc(inc[uid],day,dim,pct).target;
+  const ctx={od,sup,csn,inc,wms,psMan,psVal,day,dim,pct,xst,hl,psT,omsT,meta:session,
+    setCsnU:touch((uid,a)=>setCsn(p=>({...p,[uid]:a}))),setIncU:touch((uid,v)=>setInc(p=>({...p,[uid]:v===""?"":v}))),
+    setWmsU:touch((uid,v)=>setWms(p=>({...p,[uid]:v}))),setPsU:touch((uid,v)=>{setPsMan(p=>({...p,[uid]:true}));setPsVal(p=>({...p,[uid]:v}));}),
+    resetPsU:touch(uid=>{setPsMan(p=>{const n={...p};delete n[uid];return n;});}),
+    setDay:touch(setDay),setPct:touch(setPct),setXst:touch(setXst),setHl:touch(setHl)};
+  const famStatus=FAMS.map(f=>{const us=[f.main,...f.S];const miss=us.filter(u=>!isFilled(inc[u.id])||!(toInt(wms[u.id])>0)).length;return{miss};});
+  const totalMiss=famStatus.reduce((s,x)=>s+x.miss,0);const famDone=famStatus.filter(x=>x.miss===0).length;
+  const f=FAMS[fi];
+  const goFam=i=>{setFi(i);setStep(2);setTimeout(()=>topRef.current?.scrollIntoView({behavior:"smooth"}),30);};
+  const buildRec=()=>{const omsI={},omsTg={},psTg={},wmT={};
+    LSU.forEach(u=>{if(isFilled(inc[u.id]))omsI[u.id]=toInt(inc[u.id]);omsTg[u.id]=omsT(u.id);psTg[u.id]=psT(u.id);wmT[u.id]=toInt(wms[u.id]);});
+    const csnC={};Object.entries(csn).forEach(([k,a])=>{const v=(a||[]).map(n=>n.trim()).filter(Boolean);if(v.length)csnC[k]=v;});
+    return{month,year,currentDay,omsDay:day,omsDIM:dim,omsPct:pct,xsTarget:xst,officeData:od,omsIncidents:omsI,omsTargets:omsTg,psPmTargets:psTg,
+      psManual:psMan,wmsTargets:wmT,csnNames:csnC,hotlineNames:hl.map(n=>n.trim()).filter(Boolean),
+      totalRows:UNITS.reduce((s,u)=>s+od[u.id].total,0),savedAt:new Date().toISOString(),savedBy:user?.displayName||user?.email||""};};
+  const preview=useMemo(()=>buildRec(),[od,inc,wms,psMan,psVal,csn,day,pct,xst,hl]);
+  const doSave=async()=>{
+    if(!month||!year){setMsg({t:"err",m:"ไม่พบเดือน/ปีในไฟล์ — บันทึกไม่ได้"});return;}
+    setSaving(true);setMsg(null);
+    try{const rec=buildRec();
+      await db.ref(DB_ROOT+"/months/"+key).set(encKeys(rec));
+      await db.ref(DB_ROOT+"/sup/"+key).set(encKeys(sup));
+      const psValC={};Object.keys(psMan).forEach(k=>{psValC[k]=toInt(psVal[k]);});
+      await db.ref(DB_ROOT+"/settings").update(encKeys({csnNames:rec.csnNames,psManual:psMan,psTargets:psValC,wmsTargets:rec.wmsTargets,omsPct:pct,xsTarget:xst,hotlineNames:rec.hotlineNames}));
+      try{localStorage.removeItem(DRAFT(key));}catch(e){}
+      setMsg({t:"ok",m:"บันทึกข้อมูลเดือน "+TM[month]+" "+ty(year)+" เรียบร้อย"});onSaved&&onSaved(key);
+    }catch(e){setMsg({t:"err",m:"บันทึกไม่สำเร็จ: "+(String(e.message||e).includes("PERMISSION")?"อีเมลนี้ไม่มีสิทธิ์แอดมิน (ตรวจ Rules ใน Firebase)":e.message)});}
+    setSaving(false);setConfirmSave(false);};
+  const restoreDraft=()=>{const d=draft;setCsn(d.csn||{});setWms(d.wms||{});setInc(d.inc||{});setPsMan(d.psMan||{});setPsVal(d.psVal||{});setPct(d.pct||35);setDay(d.day||currentDay);setXst(d.xst||12);setHl(d.hl||[]);dirty.current=true;setDraft(null);};
+
+  return(<div ref={topRef}>
+    <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",borderLeft:"6px solid #1a237e"}}>
+      <div><div style={{fontWeight:800,fontSize:18,color:"#1a237e"}}>📄 {session.fname||"ข้อมูลที่บันทึกไว้"} — {TM[month]||"?"} {ty(year)}</div>
+        <div className="hint" style={{fontSize:13.5}}>ข้อมูล ณ วันที่ {currentDay} • ใบงานของ 92 การไฟฟ้าในเขต {UNITS.reduce((s,u)=>s+od[u.id].total,0).toLocaleString()} รายการ{session.all?" (จากทั้งไฟล์ "+session.all.toLocaleString()+")":""}
+          {existing&&<b style={{color:"#e65100"}}> • เดือนนี้เคยบันทึกแล้ว — ดึงค่าที่กรอกไว้เดิมมาให้</b>}</div></div>
+      <button className="btn out sm" onClick={onClose}>✕ ปิด</button></div>
+    {draft&&<div className="card" style={{background:"#fff8e1",border:"2px solid #ffb300",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{fontWeight:700,color:"#8d6e00"}}>💾 พบข้อมูลที่กรอกค้างไว้ของเดือนนี้ ({new Date(draft.ts).toLocaleString("th-TH")})</div>
+      <div style={{display:"flex",gap:8}}><button className="btn sm ok" onClick={restoreDraft}>ใช้ข้อมูลที่กรอกค้าง</button><button className="btn sm out" onClick={()=>setDraft(null)}>ไม่ใช้</button></div></div>}
+    <div style={{marginBottom:14}}><StepBar step={step} setStep={setStep} canReview={true}/></div>
+    {msg&&<div className="card" style={{background:msg.t==="ok"?"#e8f5e9":"#ffebee",color:msg.t==="ok"?"#1b5e20":"#b71c1c",fontWeight:800}}>{msg.t==="ok"?"✅ ":"⛔ "}{msg.m}</div>}
+
+    {step===2&&<div>
+      <GlobalBox ctx={ctx}/>
+      <div className="card" style={{padding:"10px 16px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <b style={{color:"#1a237e"}}>ความคืบหน้า:</b><span className="chip" style={{background:"#e8f5e9",color:"#2e7d32"}}>ครบแล้ว {famDone}/18 การไฟฟ้าแม่</span>
+        {totalMiss>0?<span className="chip" style={{background:"#fff3e0",color:"#e65100"}}>ยังขาด {totalMiss} หน่วย</span>:<span className="chip" style={{background:"#e8f5e9",color:"#2e7d32"}}>กรอกครบทุกหน่วย ✓</span>}
+        <span className="hint">ช่องสีส้ม = ยังไม่กรอก</span></div>
+      <div className="edgrid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:14,alignItems:"start"}}>
+        <div className="card navcard" style={{padding:10,position:"sticky",top:8}}><div style={{fontWeight:800,color:"#37474f",margin:"2px 4px 8px"}}>เลือกการไฟฟ้าแม่</div><FamNav fi={fi} setFi={goFam} famStatus={famStatus}/></div>
+        <div>
+          <div className="card" style={{background:"linear-gradient(135deg,#1a237e,#3949ab)",color:"#fff",padding:"14px 18px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+              <div><div style={{fontSize:13,opacity:.8}}>กำลังกรอก: ชุดที่ {fi+1} จาก 18</div>
+                <div style={{fontSize:21,fontWeight:800}}>{f.main.code} {f.main.label}</div>
+                <div style={{fontSize:13.5,opacity:.9}}>แม่ 1{f.S.length?" · S "+f.S.length+" แห่ง":""}{f.X.length?" · XS "+f.X.length+" แห่ง":""}</div></div>
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn sm" style={{background:"rgba(255,255,255,.2)",color:"#fff"}} disabled={fi===0} onClick={()=>goFam(fi-1)}>◀ ก่อนหน้า</button>
+                <button className="btn sm" style={{background:"#fff",color:"#1a237e"}} disabled={fi===17} onClick={()=>goFam(fi+1)}>ถัดไป ▶</button></div></div></div>
+          <LSUnitCard u={f.main} ctx={ctx}/>
+          {f.S.map(u=><LSUnitCard key={u.id} u={u} ctx={ctx}/>)}
+          <XSFamList units={f.X} od={od} xst={xst}/>
+          <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",margin:"6px 0 30px"}}>
+            <button className="btn out" disabled={fi===0} onClick={()=>goFam(fi-1)}>◀ ก่อนหน้า</button>
+            {fi<17?<button className="btn pri" onClick={()=>goFam(fi+1)}>ถัดไป: {FAMS[fi+1].main.label} ▶</button>
+              :<button className="btn ok" onClick={()=>{setStep(3);topRef.current?.scrollIntoView();}}>ไปตรวจทาน & บันทึก ▶</button>}</div>
+        </div></div></div>}
+
+    {step===3&&<div>
+      <div className="card">
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
+          <div style={{fontWeight:800,fontSize:17,color:"#1a237e"}}>ตรวจทานค่าที่กรอก (แม่ 18 + S 30) <span className="hint">— คลิกแถวเพื่อกลับไปแก้</span></div>
+          {totalMiss>0?<span className="chip" style={{background:"#fff3e0",color:"#e65100"}}>ยังไม่ครบ {totalMiss} หน่วย</span>:<span className="chip" style={{background:"#e8f5e9",color:"#2e7d32"}}>ครบทุกหน่วย ✓</span>}</div>
+        <ReviewTable ctx={ctx} goFam={goFam}/></div>
+      <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",border:"2px solid #2e7d32"}}>
+        <div style={{fontWeight:700}}>{totalMiss>0?<span style={{color:"#e65100"}}>⚠ ยังกรอกไม่ครบ {totalMiss} หน่วย — บันทึกไว้ก่อนได้ แล้วกลับมาแก้ในเมนู "ข้อมูลรายเดือน"</span>:"พร้อมบันทึก — ตรวจกราฟด้านล่างก่อนกดบันทึก"}</div>
+        {!confirmSave?<button className="btn ok" disabled={saving} onClick={()=>totalMiss>0?setConfirmSave(true):doSave()}>💾 บันทึกข้อมูลเดือน {TM[month]}</button>
+          :<div style={{display:"flex",gap:8}}><button className="btn ok" disabled={saving} onClick={doSave}>{saving?"กำลังบันทึก...":"ยืนยันบันทึก (ยังไม่ครบ)"}</button><button className="btn out" onClick={()=>setConfirmSave(false)}>ยกเลิก</button></div>}</div>
+      <div style={{fontWeight:800,color:"#455a64",margin:"4px 2px 8px"}}>ตัวอย่างหน้า Dashboard</div>
+      <RegionDash md={preview}/>
+    </div>}
+  </div>);
+}
+
+/* ══ หน้าแอดมิน ══ */
+function Uploader({onLoad}){
+  const [dg,setDg]=useState(false);const [err,setErr]=useState(null);const [busy,setBusy]=useState(false);const ref=useRef();
+  const read=f=>{if(!f)return;setBusy(true);setErr(null);const r=new FileReader();
+    r.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});const res=readWorkbook(wb);
+      if(res.error){setErr(res.error);}else if(!res.month||!res.year){setErr("ไม่พบเดือน/ปีในเซลล์ A1 ของไฟล์ (Month เป็น../Year เป็น..)");}else onLoad({...res,fname:f.name});}
+      catch(x){setErr("อ่านไฟล์ไม่ได้: "+x.message);}setBusy(false);};r.readAsArrayBuffer(f);};
+  return(<div>
+    <div className={"uz"+(dg?" dg":"")} onClick={()=>ref.current?.click()} onDragOver={e=>{e.preventDefault();setDg(true);}} onDragLeave={()=>setDg(false)} onDrop={e=>{e.preventDefault();setDg(false);read(e.dataTransfer.files[0]);}}>
+      <div style={{fontSize:44}}>📥</div><div style={{fontSize:19,fontWeight:800,color:"#1a237e",marginTop:6}}>{busy?"กำลังอ่านไฟล์...":"นำเข้าไฟล์ data.xlsx จาก WeSafe"}</div>
+      <div className="hint" style={{fontSize:14,marginTop:6}}>ไฟล์เดียวครอบคลุมทั้ง 92 การไฟฟ้า • คลิกหรือลากไฟล์มาวาง</div>
+      <input ref={ref} type="file" accept=".xlsx,.xls" style={{display:"none"}} data-upload="1" onChange={e=>{read(e.target.files[0]);e.target.value="";}}/></div>
+    {err&&<div className="card" style={{marginTop:12,background:"#ffebee",color:"#b71c1c",fontWeight:700}}>⛔ {err}</div>}
+  </div>);}
+function MonthsList({allD,onEdit,onView}){
+  const keys=validMonthKeys(allD).reverse();const [del,setDel]=useState(null);
+  if(!keys.length)return <div className="card" style={{textAlign:"center",color:"#888",padding:30}}>ยังไม่มีข้อมูลที่บันทึก</div>;
+  return(<div className="card"><table className="tbl"><thead><tr><th style={{textAlign:"left"}}>เดือน</th><th>ข้อมูล ณ วันที่</th><th className="hide-m">ใบงานทั้งเขต</th><th className="hide-m">บันทึกล่าสุด</th><th>จัดการ</th></tr></thead>
+    <tbody>{keys.map(k=>{const d=allD[k];const miss=LSU.filter(u=>!isFilled(d.omsIncidents?.[u.id])).length;return(<tr key={k}>
+      <td className="l">{TM[d.month]} {ty(d.year)} {miss>0&&<span className="badge" style={{background:"#ffa726"}}>ขาด OMS {miss}</span>}</td><td>{d.currentDay}</td>
+      <td className="hide-m">{(d.totalRows||0).toLocaleString()}</td><td className="hide-m hint">{d.savedAt?new Date(d.savedAt).toLocaleString("th-TH"):""} {d.savedBy}</td>
+      <td style={{whiteSpace:"nowrap"}}><button className="btn sm out" onClick={()=>onView(k)}>ดู</button> <button className="btn sm pri" onClick={()=>onEdit(k)}>แก้ไข</button>{" "}
+        {del===k?<><button className="btn sm red" onClick={async()=>{await db.ref(DB_ROOT+"/months/"+k).remove();await db.ref(DB_ROOT+"/sup/"+k).remove();setDel(null);}}>ยืนยันลบ</button> <button className="btn sm out" onClick={()=>setDel(null)}>ยกเลิก</button></>
+          :<button className="btn sm" style={{background:"#ffebee",color:"#c62828"}} onClick={()=>setDel(k)}>ลบ</button>}</td></tr>);})}</tbody></table></div>);}
+function Admin({user,allD,loaded,settings}){
+  const [tab,setTab]=useState("import");const [session,setSession]=useState(null);const [viewKey,setViewKey]=useState(null);const [loadErr,setLoadErr]=useState(null);
+  const openFile=res=>{const k=mkey(res.year,res.month);setSession({...res,existing:allD[k]||null});};
+  const openSaved=async k=>{setLoadErr(null);try{const snap=await db.ref(DB_ROOT+"/sup/"+k).once("value");const sup=snap.val()?decKeys(snap.val()):null;const d=allD[k];
+    if(!sup){setLoadErr("เดือนนี้ไม่มีข้อมูลรายชื่อช่างที่บันทึกไว้ — กรุณานำเข้าไฟล์ data ของเดือนนี้ใหม่");return;}
+    setSession({month:d.month,year:d.year,currentDay:d.currentDay,sup,fname:"แก้ไขข้อมูลที่บันทึกไว้",existing:d});setTab("import");}catch(e){setLoadErr(e.message);}};
+  return(<div>
+    <div style={{background:"linear-gradient(135deg,#1a237e,#283593)",color:"#fff"}}><div className="wrap" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",paddingTop:12,paddingBottom:12}}>
+      <div><div style={{fontSize:19,fontWeight:800}}>⚡ WeSafe KPI — กฟน.1 (ระดับเขต)</div><div style={{fontSize:13,opacity:.8}}>แม่ 18 · S 30 · XS 44 การไฟฟ้า</div></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:13,opacity:.85}}>{user.email}</span>
+        <a className="btn sm" style={{background:"rgba(255,255,255,.18)",color:"#fff",textDecoration:"none"}} href="?view=1" target="_blank" rel="noopener">🌐 หน้า Dashboard</a>
+        <button className="btn sm" style={{background:"#fff",color:"#1a237e"}} onClick={()=>auth.signOut()}>ออกจากระบบ</button></div></div></div>
+    <div className="wrap">
+      <div className="tabs" style={{marginBottom:14}}>
+        {[["import","📥 นำเข้า & กรอกข้อมูล"],["months","🗂 ข้อมูลรายเดือน"],["dash","📊 Dashboard"]].map(([k,l])=><button key={k} className={"tab"+(tab===k?" on":"")} onClick={()=>setTab(k)}>{l}</button>)}</div>
+      {loadErr&&<div className="card" style={{background:"#ffebee",color:"#b71c1c",fontWeight:700}}>⛔ {loadErr}</div>}
+      {tab==="import"&&(session?<Editor key={mkey(session.year,session.month)+(session.fname||"")} session={session} settings={settings} user={user} onClose={()=>setSession(null)} onSaved={()=>{}}/>
+        :<div><div style={{marginBottom:14}}><StepBar step={1} setStep={()=>{}} canReview={false}/></div><Uploader onLoad={openFile}/>
+          <div className="card hint" style={{marginTop:14,fontSize:14,lineHeight:1.8}}><b style={{color:"#37474f"}}>ขั้นตอน:</b> ① นำเข้าไฟล์ data ของเดือน → ② กรอกจำนวนเหตุ OMS, ชื่อช่าง PS/PM และเป้า WMS ทีละการไฟฟ้าแม่ (18 ชุด) → ③ ตรวจทานแล้วกดบันทึก<br/>
+            ชื่อช่าง เป้า PS/PM และเป้า WMS จะถูกจำไว้ใช้เดือนถัดไป ส่วนจำนวนเหตุ OMS ต้องกรอกใหม่ทุกเดือน</div></div>)}
+      {tab==="months"&&<MonthsList allD={allD} onEdit={openSaved} onView={k=>{setViewKey(k);setTab("dash");}}/>}
+      {tab==="dash"&&(viewKey&&allD[viewKey]?<div><div style={{marginBottom:10}}><button className="btn sm out" onClick={()=>setViewKey(null)}>← เลือกเดือนอื่น</button></div><RegionDash md={allD[viewKey]}/></div>:<DashView allD={allD} loaded={loaded}/>)}
+    </div></div>);}
+
+function Login(){
+  const [err,setErr]=useState(null);
+  return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"linear-gradient(135deg,#1a237e,#5e35b1)"}}>
+    <div className="card" style={{maxWidth:420,width:"100%",textAlign:"center",padding:30}}>
+      <div style={{fontSize:46}}>⚡</div><div style={{fontSize:22,fontWeight:800,color:"#1a237e"}}>WeSafe KPI — กฟน.1</div><div className="hint" style={{marginBottom:20}}>ระบบรวมผลทั้งเขต (แอดมิน)</div>
+      <button className="btn pri" style={{width:"100%",justifyContent:"center",padding:12,fontSize:16}} onClick={()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>setErr(e.message))}>เข้าสู่ระบบด้วย Google</button>
+      {err&&<div style={{color:"#c62828",marginTop:10,fontSize:13}}>{err}</div>}
+      <a href="?view=1" style={{display:"block",marginTop:16,color:"#3949ab",fontWeight:700}}>ดู Dashboard (ไม่ต้องเข้าสู่ระบบ)</a></div></div>);}
+function PublicView({allD,loaded}){
+  return(<div>
+    <div style={{background:"linear-gradient(135deg,#1a237e,#283593)",color:"#fff"}}><div className="wrap" style={{paddingTop:14,paddingBottom:14}}>
+      <div style={{fontSize:20,fontWeight:800}}>⚡ WeSafe KPI Dashboard — กฟน.1</div><div style={{fontSize:13,opacity:.8}}>ผลการเปิดใบงาน WeSafe ทั้งเขต: การไฟฟ้าแม่ 18 · สาขา S 30 · สาขา XS 44</div></div></div>
+    <div className="wrap"><DashView allD={allD} loaded={loaded}/></div></div>);}
+
+function App(){
+  const [user,setUser]=useState(null),[authReady,setAuthReady]=useState(false);
+  const [allD,setAllD]=useState({}),[loaded,setLoaded]=useState(false),[settings,setSettings]=useState({});
+  useEffect(()=>auth.onAuthStateChanged(u=>{setUser(u);setAuthReady(true);}),[]);
+  useEffect(()=>{const r=db.ref(DB_ROOT+"/months");r.on("value",s=>{const v=s.val();setAllD(v?decKeys(v):{});setLoaded(true);},()=>setLoaded(true));return()=>r.off();},[]);
+  useEffect(()=>{if(isPublicView)return;const r=db.ref(DB_ROOT+"/settings");r.on("value",s=>{const v=s.val();setSettings(v?decKeys(v):{});});return()=>r.off();},[]);
+  if(isPublicView)return <PublicView allD={allD} loaded={loaded}/>;
+  if(!authReady)return <div style={{padding:40,textAlign:"center",color:"#888"}}>กำลังโหลด...</div>;
+  if(!user)return <Login/>;
+  return <Admin user={user} allD={allD} loaded={loaded} settings={settings}/>;
+}
+ReactDOM.render(<App/>,document.getElementById("root"));
+</script>
+</body>
+</html>
